@@ -1,1 +1,1 @@
-worker: python media_filter_textbot.py
+web: python app.py
