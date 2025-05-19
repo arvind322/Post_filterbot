@@ -1,7 +1,7 @@
 from flask import Flask
 from threading import Thread
 import asyncio
-from media_filter_textbot import bot  # Directly import bot object
+from media_filter_textbot import bot
 
 app = Flask(__name__)
 
@@ -13,7 +13,8 @@ def run_bot():
     async def start():
         await bot.start()
         print("Bot started.")
-        await bot.idle()
+        while True:
+            await asyncio.sleep(10)  # Keeps the bot alive
     asyncio.run(start())
 
 if __name__ == "__main__":
