@@ -1,7 +1,8 @@
 from flask import Flask
 import threading
 import asyncio
-from media_filter_textbot import bot  # आपका Pyrogram bot instance
+from media_filter_textbot import bot
+from pyrogram.raw.functions import Ping
 
 app = Flask(__name__)
 
@@ -10,10 +11,15 @@ def home():
     return "Bot is running!"
 
 def run_bot():
-    asyncio.run(bot.start())  # Bot start करें
-    print("Bot started")
-    asyncio.get_event_loop().run_forever()  # Event loop को चलाते रहें
+    async def main():
+        await bot.connect()
+        await bot.invoke(Ping(ping_id=0))  # टाइम सिंक के लिए जरूरी
+        await bot.start()
+        print("Bot started")
+        await asyncio.get_event_loop().create_future()  # bot को चलाता रहे
+
+    asyncio.run(main())
 
 if __name__ == "__main__":
-    threading.Thread(target=run_bot).start()  # Bot को अलग थ्रेड में चलाएं
-    app.run(host="0.0.0.0", port=8080)       # Flask app को मेन थ्रेड में चलाएं
+    threading.Thread(target=run_bot).start()
+    app.run(host="0.0.0.0", port=8080)
