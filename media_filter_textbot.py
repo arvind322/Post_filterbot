@@ -12,17 +12,17 @@ client = MongoClient(MONGO_URI)
 db = client["MediaBot"]
 collection = db["Messages"]
 
-app = Client("media_filter_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
+bot = Client("media_filter_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
-@app.on_message(filters.command("update"))
+@bot.on_message(filters.command("update"))
 async def update_db(client, message):
     user_id = message.from_user.id if message.from_user else None
-    member = await app.get_chat_member(CHANNEL_USERNAME, user_id)
+    member = await client.get_chat_member(CHANNEL_USERNAME, user_id)
     if not (member.status in ("administrator", "creator")):
         return await message.reply("Sirf channel admin hi `/update` command chala sakta hai.")
 
     await message.reply("Messages collecting started...")
-    async for msg in app.get_chat_history(CHANNEL_USERNAME):
+    async for msg in client.get_chat_history(CHANNEL_USERNAME):
         if msg.text:
             post_link = f"https://t.me/{CHANNEL_USERNAME}/{msg.message_id}"
             title = msg.text.splitlines()[0][:100]
@@ -44,7 +44,7 @@ async def update_db(client, message):
             )
     await message.reply("Done. All text messages saved.")
 
-@app.on_message(filters.text)
+@bot.on_message(filters.text)
 async def search_messages(client, message):
     query = message.text
     results = collection.find({"title": {"$regex": query, "$options": "i"}}).limit(5)
@@ -59,4 +59,4 @@ Link: {msg['link']}"""
         await message.reply("Kuch nahi mila.", quote=True)
 
 def start_bot():
-    app.run()
+    bot.run()
