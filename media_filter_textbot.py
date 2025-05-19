@@ -4,7 +4,7 @@ import os
 
 API_ID = 28712296
 API_HASH = "25a96a55e729c600c0116f38564a635f"
-BOT_TOKEN = "7462333733:AAH4G_Qrry4X6EjLR6mpA13elZYxqw6zVIQ"
+BOT_TOKEN = "7462333733:AAGTipaAqOSqPORNOuwERnEHBQGLoPbXxfE"
 CHANNEL_USERNAME = "moviestera1"
 
 MONGO_URI = os.getenv("MONGO_URI")
@@ -13,6 +13,10 @@ db = client["MediaBot"]
 collection = db["Messages"]
 
 bot = Client("media_filter_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
+
+@bot.on_message(filters.command("start"))
+async def start(client, message):
+    await message.reply("Hello! Lucas bot is working perfectly.")
 
 @bot.on_message(filters.command("update"))
 async def update_db(client, message):
