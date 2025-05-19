@@ -1,22 +1,21 @@
 from flask import Flask
-from threading import Thread
-import asyncio
-from media_filter_textbot import bot
+import threading
+from media_filter_textbot import bot  # आपका bot जो Pyrogram Client है
 
 app = Flask(__name__)
 
-@app.route('/')
+@app.route("/")
 def home():
-    return "Telegram Media Filter Bot is Running on Koyeb!"
+    return "Bot is running!"
 
 def run_bot():
-    async def start():
-        await bot.start()
-        print("Bot started.")
-        while True:
-            await asyncio.sleep(10)  # Keeps the bot alive
-    asyncio.run(start())
+    try:
+        bot.run()
+    except Exception as e:
+        print("Bot error:", e)
 
 if __name__ == "__main__":
-    Thread(target=run_bot).start()
+    # Pyrogram bot को अलग thread में चलाएं ताकि Flask को block न करे
+    threading.Thread(target=run_bot).start()
+    # Flask app चलाएं, 0.0.0.0 पर और पोर्ट 8080 पर
     app.run(host="0.0.0.0", port=8080)
