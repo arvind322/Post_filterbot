@@ -16,7 +16,6 @@ app = Client("media_filter_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT
 
 @app.on_message(filters.command("update"))
 async def update_db(client, message):
-    # Only allow update from channel admin or bot owner
     user_id = message.from_user.id if message.from_user else None
     member = await app.get_chat_member(CHANNEL_USERNAME, user_id)
     if not (member.status in ("administrator", "creator")):
