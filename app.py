@@ -1,4 +1,3 @@
-
 from flask import Flask
 import threading
 from media_filter_textbot import start_bot
