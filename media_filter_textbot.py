@@ -11,9 +11,12 @@ API_ID = 28712296
 API_HASH = "25a96a55e729c600c0116f38564a635f"
 BOT_TOKEN = "7462333733:AAGTipaAqOSqPORNOuwERnEHBQGLoPbXxfE"
 CHANNEL_USERNAME = "moviestera1"
-MONGO_URI = os.getenv("MONGO_URI") or "mongodb+srv://lucas:00700177@lucas.miigb0j.mongodb.net/?retryWrites=true&w=majority&appName=lucas"
 
-# Mongo client
+# Multiple Admins allowed
+ADMIN_IDS = [6264765942, 7570095233]  # Add more Telegram user IDs if needed
+
+# MongoDB config
+MONGO_URI = os.getenv("MONGO_URI") or "mongodb+srv://lucas:00700177@lucas.miigb0j.mongodb.net/?retryWrites=true&w=majority&appName=lucas"
 client = MongoClient(MONGO_URI)
 db = client["MediaBot"]
 collection = db["Messages"]
@@ -23,20 +26,11 @@ bot = Client("media_filter_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT
 
 @bot.on_message(filters.command("start"))
 async def start_handler(client, message):
-    await message.reply("Bot is online! Send a movie name to search.")
+    await message.reply("**Bot is online!**\n\nMovie ka naam bhejo aur bot uski post dhoond kar reply karega.")
 
 @bot.on_message(filters.command("update"))
 async def update_db(client, message):
-    user_id = message.from_user.id if message.from_user else None
-
-    # Check if user is admin in the channel
-    try:
-        member = await client.get_chat_member(CHANNEL_USERNAME, user_id)
-    except Exception as e:
-        logging.warning(f"Channel check failed: {e}")
-        return await message.reply("Bot ko channel me add karo aur admin banao.")
-
-    if not (member.status in ("administrator", "creator")):
+    if message.from_user.id not in ADMIN_IDS:
         return await message.reply("Sirf channel admin hi `/update` command chala sakta hai.")
 
     await message.reply("Messages collecting started...")
@@ -62,15 +56,17 @@ async def update_db(client, message):
                 },
                 upsert=True
             )
+
     await message.reply("Done. All text messages saved.")
 
 @bot.on_message(filters.text & ~filters.command(["update", "start"]))
 async def search_messages(client, message):
-    query = message.text
+    query = message.text.strip()
     logging.info(f"Searching for: {query}")
-    results = collection.find({"title": {"$regex": query, "$options": "i"}}).limit(5)
 
+    results = collection.find({"title": {"$regex": query, "$options": "i"}}).limit(5)
     found = False
+
     for msg in results:
         reply_text = f"""**{msg['title']}**
 
