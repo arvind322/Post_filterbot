@@ -7,7 +7,7 @@ API_HASH = "25a96a55e729c600c0116f38564a635f"
 BOT_TOKEN = "7462333733:AAGTipaAqOSqPORNOuwERnEHBQGLoPbXxfE"
 CHANNEL_USERNAME = "moviestera1"
 
-MONGO_URI = os.getenv("MONGO_URI")
+MONGO_URI = "mongodb+srv://lucas:00700177@lucas.miigb0j.mongodb.net/?retryWrites=true&w=majority&appName=lucas"
 client = MongoClient(MONGO_URI)
 db = client["MediaBot"]
 collection = db["Messages"]
@@ -21,14 +21,17 @@ async def update_db(client, message):
     if not (member.status in ("administrator", "creator")):
         return await message.reply("Sirf channel admin hi `/update` command chala sakta hai.")
 
-    await message.reply("Messages collecting started...")
+    await message.reply("Channel ke saare text posts MongoDB me save kiye ja rahe hain...")
+    count = 0
+
     async for msg in client.get_chat_history(CHANNEL_USERNAME):
         if msg.text:
             post_link = f"https://t.me/{CHANNEL_USERNAME}/{msg.message_id}"
             title = msg.text.splitlines()[0][:100]
             body = msg.text
             filename = f"{title[:50].strip()}.txt"
-            collection.update_one(
+
+            result = collection.update_one(
                 {"message_id": msg.message_id},
                 {
                     "$set": {
@@ -42,7 +45,9 @@ async def update_db(client, message):
                 },
                 upsert=True
             )
-    await message.reply("Done. All text messages saved.")
+            count += 1
+
+    await message.reply(f"✅ {count} posts updated/saved in database.")
 
 @bot.on_message(filters.text & ~filters.command(["update"]))
 async def search_messages(client, message):
@@ -51,9 +56,11 @@ async def search_messages(client, message):
     found = False
     for msg in results:
         reply_text = f"""**{msg['title']}**
-Body: {msg['body']}
-Link: {msg['link']}"""
-        await message.reply(reply_text, quote=True)
+
+{msg['body']}
+
+[Link to Post]({msg['link']})"""
+        await message.reply(reply_text, quote=True, disable_web_page_preview=True)
         found = True
     if not found:
         await message.reply("Kuch nahi mila.", quote=True)
