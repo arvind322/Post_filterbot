@@ -51,9 +51,9 @@ async def search_messages(client, message):
     results = collection.find({"title": {"$regex": query, "$options": "i"}}).limit(5)
     found = False
     for msg in results:
-        reply_text = f"**{msg['title']}**"
-File: `{msg['filename']}`
-Link: {msg['link']}"
+        reply_text = f"""**{msg['title']}**
+Body: {msg['body']}
+Link: {msg['link']}"""
         await message.reply(reply_text, quote=True)
         found = True
     if not found:
