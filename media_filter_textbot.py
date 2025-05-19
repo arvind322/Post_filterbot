@@ -14,10 +14,6 @@ collection = db["Messages"]
 
 bot = Client("media_filter_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
-@bot.on_message(filters.command("start"))
-async def start(client, message):
-    await message.reply("Hello! Lucas bot is working perfectly.")
-
 @bot.on_message(filters.command("update"))
 async def update_db(client, message):
     user_id = message.from_user.id if message.from_user else None
@@ -48,7 +44,7 @@ async def update_db(client, message):
             )
     await message.reply("Done. All text messages saved.")
 
-@bot.on_message(filters.text)
+@bot.on_message(filters.text & ~filters.command(["update"]))
 async def search_messages(client, message):
     query = message.text
     results = collection.find({"title": {"$regex": query, "$options": "i"}}).limit(5)
@@ -61,6 +57,3 @@ Link: {msg['link']}"""
         found = True
     if not found:
         await message.reply("Kuch nahi mila.", quote=True)
-
-def start_bot():
-    bot.run()
