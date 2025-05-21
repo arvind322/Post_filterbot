@@ -152,4 +152,3 @@ if __name__ == "__main__":
     uvloop.install()
     asyncio.get_event_loop().run_until_complete(start_bot())
 # Start bot
-app.run()
