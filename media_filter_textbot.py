@@ -113,6 +113,43 @@ async def update_db(client, message: Message):
     log_msg = f"Saved: {saved} | Skipped: {skipped} | Errors: {errors}"
     logging.info(log_msg)
     await message.reply(f"Update completed.\n{log_msg}")
+# Add this function before app.run()
+async def fix_missing_filenames():
+    count = 0
+    for doc in collection.find({"file_name": None}):
+        message_id = doc.get("message_id")
+        text = doc.get("text", "")
+        if not message_id or not text:
+            continue
+        first_line = text.strip().split("\n")[0]
+        try:
+            collection.update_one(
+                {"_id": doc["_id"]},
+                {"$set": {"file_name": first_line}}
+            )
+            count += 1
+        except Exception as e:
+            logging.error(f"Failed to update file_name for message {message_id}: {e}")
+    logging.info(f"Updated file_name for {count} documents.")
 
+# Start bot
+@app.on_message(filters.command("fixfiles") & filters.me)
+async def fix_files_command(client, message: Message):
+    await message.reply("Fixing file names...")
+    await fix_missing_filenames()
+    await message.reply("File names updated.")
+
+# Run on startup
+async def start_bot():
+    await app.start()
+    await fix_missing_filenames()  # Auto-fix on startup
+    logging.info("Bot started and file names fixed.")
+    await idle()
+
+if __name__ == "__main__":
+    import uvloop
+    from pyrogram.idle import idle
+    uvloop.install()
+    asyncio.get_event_loop().run_until_complete(start_bot())
 # Start bot
 app.run()
