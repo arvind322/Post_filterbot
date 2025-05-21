@@ -1,8 +1,15 @@
+import logging
 from pyrogram import Client, filters
 from pyrogram.types import Message
-from pymongo import MongoClient
+from pymongo import MongoClient, errors as pymongo_errors
 from flask import Flask
 from threading import Thread
+
+# Logging setup
+logging.basicConfig(
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    level=logging.INFO
+)
 
 # Telegram & Mongo Config
 api_id = 28712296
@@ -11,10 +18,16 @@ session_string = "BQG2HWgAhXKS3YQN7ItANKtfvPx_jcO23EAvyP5-AKgwP0T5dFJLVO2kOqC_LL
 mongo_url = "mongodb+srv://lucas:00700177@lucas.miigb0j.mongodb.net/?retryWrites=true&w=majority&appName=lucas"
 channel_username = "moviestera1"
 
-# Start Mongo Client
-mongo_client = MongoClient(mongo_url)
-db = mongo_client["lucas"]
-collection = db["Telegram_files"]
+# Mongo Client
+try:
+    mongo_client = MongoClient(mongo_url, serverSelectionTimeoutMS=5000)
+    mongo_client.server_info()  # Trigger connection
+    db = mongo_client["lucas"]
+    collection = db["Telegram_files"]
+    logging.info("MongoDB connection established.")
+except pymongo_errors.ServerSelectionTimeoutError as e:
+    logging.error(f"MongoDB connection failed: {e}")
+    raise SystemExit("Exiting due to MongoDB connection failure.")
 
 # Pyrogram client
 app = Client(
@@ -24,7 +37,7 @@ app = Client(
     session_string=session_string
 )
 
-# Flask app for Koyeb health check
+# Flask for health check
 flask_app = Flask(__name__)
 
 @flask_app.route('/')
@@ -34,27 +47,44 @@ def index():
 def run_flask():
     flask_app.run(host='0.0.0.0', port=8080)
 
-# Start Flask server in background
 Thread(target=run_flask).start()
 
-# Telegram handler
+# Telegram command handler
 @app.on_message(filters.command("update") & filters.me)
 async def update_db(client, message: Message):
     await message.reply("Collecting messages...")
 
-    async for msg in client.get_chat_history(channel_username):
-        if not msg.media:
-            continue
-        if collection.find_one({"message_id": msg.id}):
-            continue
+    saved = 0
+    skipped = 0
+    errors = 0
 
-        collection.insert_one({
-            "message_id": msg.id,
-            "text": msg.caption if msg.caption else "",
-            "file_name": msg.document.file_name if msg.document else None
-        })
+    try:
+        async for msg in client.get_chat_history(channel_username):
+            if not msg.media:
+                skipped += 1
+                continue
+            if collection.find_one({"message_id": msg.id}):
+                skipped += 1
+                continue
 
-    await message.reply("Messages saved successfully.")
+            try:
+                collection.insert_one({
+                    "message_id": msg.id,
+                    "text": msg.caption or "",
+                    "file_name": msg.document.file_name if msg.document else None
+                })
+                saved += 1
+            except pymongo_errors.PyMongoError as e:
+                logging.error(f"MongoDB insert failed for message {msg.id}: {e}")
+                errors += 1
+    except Exception as e:
+        logging.exception(f"Failed to fetch messages from @{channel_username}: {e}")
+        await message.reply(f"Failed to collect messages: {e}")
+        return
 
-# Start Pyrogram
+    log_msg = f"Saved: {saved} | Skipped: {skipped} | Errors: {errors}"
+    logging.info(log_msg)
+    await message.reply(f"Update completed.\n{log_msg}")
+
+# Start bot
 app.run()
