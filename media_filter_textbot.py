@@ -1,6 +1,6 @@
 import logging
 import asyncio
-from pyrogram import Client, filters, idle  # Fixed import
+from pyrogram import Client, filters, idle
 from pyrogram.types import Message
 from pyrogram.errors import FloodWait, RPCError
 from pymongo import MongoClient, errors as pymongo_errors
@@ -137,6 +137,34 @@ async def fix_files_command(client, message: Message):
     await message.reply("Fixing file names...")
     await fix_missing_filenames()
     await message.reply("File names updated.")
+
+# Movie name search in groups
+@app.on_message(filters.text & filters.group & ~filters.command(["start", "update", "fixfiles"]))
+async def search_movie_group(client, message: Message):
+    query = message.text.strip().lower()
+    if not query:
+        return
+
+    results = collection.find({"file_name": {"$regex": query, "$options": "i"}}).limit(5)
+
+    found = False
+    for doc in results:
+        msg_id = doc.get("message_id")
+        if not msg_id:
+            continue
+        try:
+            await client.copy_message(
+                chat_id=message.chat.id,
+                from_chat_id=f"@{channel_username}",
+                message_id=msg_id,
+                reply_to_message_id=message.id
+            )
+            found = True
+        except Exception as e:
+            logging.error(f"Failed to send message {msg_id}: {e}")
+
+    if not found:
+        await message.reply("Movie not found.", reply_to_message_id=message.id)
 
 # Run bot
 async def start_bot():
