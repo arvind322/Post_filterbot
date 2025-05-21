@@ -1,6 +1,8 @@
 import logging
+import asyncio
 from pyrogram import Client, filters
 from pyrogram.types import Message
+from pyrogram.errors import FloodWait, RPCError
 from pymongo import MongoClient, errors as pymongo_errors
 from flask import Flask
 from threading import Thread
@@ -49,7 +51,18 @@ def run_flask():
 
 Thread(target=run_flask).start()
 
-# Telegram command handler
+# /start command handler
+@app.on_message(filters.command("start") & filters.private)
+async def start_handler(client, message: Message):
+    total = collection.count_documents({})
+    await message.reply_text(
+        f"**Bot is Alive!**\n\n"
+        f"Channel: @{channel_username}\n"
+        f"Stored posts in DB: {total}\n\n"
+        "Use /update to fetch and save latest posts from your channel."
+    )
+
+# /update command
 @app.on_message(filters.command("update") & filters.me)
 async def update_db(client, message: Message):
     await message.reply("Collecting messages...")
@@ -77,8 +90,23 @@ async def update_db(client, message: Message):
             except pymongo_errors.PyMongoError as e:
                 logging.error(f"MongoDB insert failed for message {msg.id}: {e}")
                 errors += 1
+
+            await asyncio.sleep(0.2)
+
+    except FloodWait as e:
+        logging.warning(f"FloodWait: Sleeping for {e.value} seconds.")
+        await asyncio.sleep(e.value)
+        return await update_db(client, message)
+    except ConnectionResetError as e:
+        logging.warning("ConnectionResetError: retrying in 5 seconds.")
+        await asyncio.sleep(5)
+        return await update_db(client, message)
+    except RPCError as e:
+        logging.warning(f"RPCError: {e}. Retrying in 5 seconds.")
+        await asyncio.sleep(5)
+        return await update_db(client, message)
     except Exception as e:
-        logging.exception(f"Failed to fetch messages from @{channel_username}: {e}")
+        logging.exception(f"Unexpected error: {e}")
         await message.reply(f"Failed to collect messages: {e}")
         return
 
