@@ -1,6 +1,6 @@
 import logging
 import asyncio
-from pyrogram import Client, filters
+from pyrogram import Client, filters, idle  # Fixed import
 from pyrogram.types import Message
 from pyrogram.errors import FloodWait, RPCError
 from pymongo import MongoClient, errors as pymongo_errors
@@ -23,7 +23,7 @@ channel_username = "moviestera1"
 # Mongo Client
 try:
     mongo_client = MongoClient(mongo_url, serverSelectionTimeoutMS=5000)
-    mongo_client.server_info()  # Trigger connection
+    mongo_client.server_info()
     db = mongo_client["lucas"]
     collection = db["Telegram_files"]
     logging.info("MongoDB connection established.")
@@ -39,7 +39,7 @@ app = Client(
     session_string=session_string
 )
 
-# Flask for health check
+# Flask app for health check
 flask_app = Flask(__name__)
 
 @flask_app.route('/')
@@ -51,7 +51,7 @@ def run_flask():
 
 Thread(target=run_flask).start()
 
-# /start command handler
+# /start command
 @app.on_message(filters.command("start") & filters.private)
 async def start_handler(client, message: Message):
     total = collection.count_documents({})
@@ -67,9 +67,7 @@ async def start_handler(client, message: Message):
 async def update_db(client, message: Message):
     await message.reply("Collecting messages...")
 
-    saved = 0
-    skipped = 0
-    errors = 0
+    saved, skipped, errors = 0, 0, 0
 
     try:
         async for msg in client.get_chat_history(channel_username):
@@ -97,7 +95,7 @@ async def update_db(client, message: Message):
         logging.warning(f"FloodWait: Sleeping for {e.value} seconds.")
         await asyncio.sleep(e.value)
         return await update_db(client, message)
-    except ConnectionResetError as e:
+    except ConnectionResetError:
         logging.warning("ConnectionResetError: retrying in 5 seconds.")
         await asyncio.sleep(5)
         return await update_db(client, message)
@@ -113,7 +111,8 @@ async def update_db(client, message: Message):
     log_msg = f"Saved: {saved} | Skipped: {skipped} | Errors: {errors}"
     logging.info(log_msg)
     await message.reply(f"Update completed.\n{log_msg}")
-# Add this function before app.run()
+
+# Fix missing file names
 async def fix_missing_filenames():
     count = 0
     for doc in collection.find({"file_name": None}):
@@ -132,23 +131,21 @@ async def fix_missing_filenames():
             logging.error(f"Failed to update file_name for message {message_id}: {e}")
     logging.info(f"Updated file_name for {count} documents.")
 
-# Start bot
+# /fixfiles command
 @app.on_message(filters.command("fixfiles") & filters.me)
 async def fix_files_command(client, message: Message):
     await message.reply("Fixing file names...")
     await fix_missing_filenames()
     await message.reply("File names updated.")
 
-# Run on startup
+# Run bot
 async def start_bot():
     await app.start()
-    await fix_missing_filenames()  # Auto-fix on startup
+    await fix_missing_filenames()
     logging.info("Bot started and file names fixed.")
     await idle()
 
 if __name__ == "__main__":
     import uvloop
-    from pyrogram.idle import idle
     uvloop.install()
     asyncio.get_event_loop().run_until_complete(start_bot())
-# Start bot
