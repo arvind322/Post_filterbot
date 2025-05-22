@@ -11,7 +11,7 @@ logging.basicConfig(level=logging.INFO)
 
 api_id = 28712296
 api_hash = "25a96a55e729c600c0116f38564a635f"
-session_string = "<your_session_string>"
+session_string = "BQG2HWgATBslUzQofwm1Q7KnT0JHx1QAxZ7bEoXythlh25O3OVITX1UV1qHmgT4Ymm_4r4MTzeaK8SLbzLNO6ljlUZCuHcGqdYeu056aI3hrLrjHXGvnSz1ymbdaBLnB_PmqQQ38G-vIqDeFzesvHorx9fXLh96FZKJtBWnQWERz-ARiEl5SIRyYMmx0QcMd0-R_38zvgOzjzjjU4oyUEe_PTYZfayH3b7p3l2kr9I2IoSbOZBbkWeQKRWakXEhMWtk12a9JnuDwQMcA_T1wrMumSC2aa_kc6iNq2VKv0OLCmm8krRCyb_bEFcKEp8YYiyKs0Gte2Z92CMxZkcHDeRSCam1UcAAAAAHDNnyBAA"
 mongo_url = "<your_mongo_url>"
 channel_username = "moviestera1"
 
