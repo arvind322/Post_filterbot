@@ -1,42 +1,42 @@
 import logging
 import asyncio
-import threading
-from pyrogram import Client, filters, idle
+from pyrogram import Client, filters
 from pyrogram.types import Message
 from pymongo import MongoClient
 from flask import Flask
+import threading
 
+# Logging config
 logging.basicConfig(level=logging.INFO)
 
-# Configuration
+# Constants
 api_id = 28712296
 api_hash = "25a96a55e729c600c0116f38564a635f"
 session_string = "BQG2HWgAMqvwjVvhBwXHXvpfwILRCGue7x1DktUIqDVZWXsrVJR8aD7dMljcpF8qMyQ7K2yKZtPmNsythsa0UrTuZTyksnAmm2kYx2NxB3dFl5ZWAZdoZBE2886uQuTDqYO4gvSdHL5DsJP-6lbaTX0J9SfSnuThzUjwLozPPfPRGZTAUVlRC6xhSx6uQP-rH-1LsB0f-WCaqrRacZwAxhqRWKDykWWF8I6KYnDER7hCjTnBQpBumWvBj2qmfek_MI-Zbl4fwNPVc7XINK6NPzMLfjJRjWO-cjuZQkWp29NFcbgg8sWt7spCxnumXyRtWeYrsw9EXn5JQsThLmhMtmu_uoCwmQAAAAHDNnyBAA"
 mongo_url = "mongodb+srv://lucas:00700177@lucas.miigb0j.mongodb.net/?retryWrites=true&w=majority&appName=lucas"
 channel_username = "moviestera1"
 
+# DB setup
 client = MongoClient(mongo_url)
 db = client["lucas"]
 collection = db["Telegram_files"]
 
+# Pyrogram client
 app = Client("user_session", api_id=api_id, api_hash=api_hash, session_string=session_string)
 
+# Flask setup
 flask_app = Flask(__name__)
-resolved_chat_id = None  # will be set on startup
-
 
 @flask_app.route("/")
 def home():
     return "Bot is running!", 200
 
-
 @app.on_message(filters.command("update") & filters.me)
 async def update_db(_, message: Message):
-    global resolved_chat_id
     await message.reply("Collecting messages...")
     saved, skipped, errors = 0, 0, 0
 
-    async for msg in app.get_chat_history(resolved_chat_id):
+    async for msg in app.get_chat_history(channel_username):
         if not msg.media:
             skipped += 1
             continue
@@ -58,7 +58,6 @@ async def update_db(_, message: Message):
 
     await message.reply(f"Update done.\nSaved: {saved} | Skipped: {skipped} | Errors: {errors}")
 
-
 @app.on_message(filters.command("fixfiles") & filters.me)
 async def fix_files(_, message: Message):
     updated = 0
@@ -70,7 +69,6 @@ async def fix_files(_, message: Message):
             updated += 1
     await message.reply(f"Updated file names for {updated} documents.")
 
-
 @app.on_message(filters.command("checkchannel") & filters.me)
 async def check_channel(_, message: Message):
     try:
@@ -79,30 +77,21 @@ async def check_channel(_, message: Message):
     except Exception as e:
         await message.reply(f"Failed to access channel:\n{e}")
 
-
-async def start_flask():
-    def run():
-        flask_app.run(host="0.0.0.0", port=8080)
-    thread = threading.Thread(target=run)
-    thread.start()
-
+def run_flask():
+    flask_app.run(host="0.0.0.0", port=8080)
 
 async def main():
-    global resolved_chat_id
+    threading.Thread(target=run_flask).start()
     await app.start()
     logging.info("Client started. Resolving channel...")
     try:
         chat = await app.get_chat(channel_username)
-        resolved_chat_id = chat.id
-        logging.info(f"Channel resolved: {chat.title} ({resolved_chat_id})")
+        logging.info(f"Channel resolved: {chat.title} ({chat.id})")
     except Exception as e:
-        logging.error(f"Error resolving channel: {e}")
-        return
-    await start_flask()
-    await idle()
-    await app.stop()
+        logging.error(f"Failed to resolve channel: {e}")
+    await asyncio.Event().wait()  # Keeps the app running
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     import uvloop
     uvloop.install()
     asyncio.run(main())
