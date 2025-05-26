@@ -1,18 +1,16 @@
-# --- update_session.py (for /update and /fixfiles with session) ---
-
 import logging
 import asyncio
 from pyrogram import Client, filters, idle
 from pyrogram.types import Message
-from pyrogram.errors import FloodWait, RPCError
 from pymongo import MongoClient
+from flask import Flask
 
 logging.basicConfig(level=logging.INFO)
 
 api_id = 28712296
 api_hash = "25a96a55e729c600c0116f38564a635f"
 session_string = "BQG2HWgAMqvwjVvhBwXHXvpfwILRCGue7x1DktUIqDVZWXsrVJR8aD7dMljcpF8qMyQ7K2yKZtPmNsythsa0UrTuZTyksnAmm2kYx2NxB3dFl5ZWAZdoZBE2886uQuTDqYO4gvSdHL5DsJP-6lbaTX0J9SfSnuThzUjwLozPPfPRGZTAUVlRC6xhSx6uQP-rH-1LsB0f-WCaqrRacZwAxhqRWKDykWWF8I6KYnDER7hCjTnBQpBumWvBj2qmfek_MI-Zbl4fwNPVc7XINK6NPzMLfjJRjWO-cjuZQkWp29NFcbgg8sWt7spCxnumXyRtWeYrsw9EXn5JQsThLmhMtmu_uoCwmQAAAAHDNnyBAA"
-mongo_url = "<your_mongo_url>"
+mongo_url = "mongodb+srv://lucas:00700177@lucas.miigb0j.mongodb.net/?retryWrites=true&w=majority&appName=lucas"
 channel_username = "moviestera1"
 
 client = MongoClient(mongo_url)
@@ -20,6 +18,12 @@ db = client["lucas"]
 collection = db["Telegram_files"]
 
 app = Client("user_session", api_id=api_id, api_hash=api_hash, session_string=session_string)
+
+flask_app = Flask(__name__)
+
+@flask_app.route("/")
+def home():
+    return "Bot is running!", 200
 
 @app.on_message(filters.command("update") & filters.me)
 async def update_db(_, message: Message):
@@ -59,9 +63,18 @@ async def fix_files(_, message: Message):
             updated += 1
     await message.reply(f"Updated file names for {updated} documents.")
 
+async def start_flask():
+    import threading
+    def run():
+        flask_app.run(host="0.0.0.0", port=8080)
+    thread = threading.Thread(target=run)
+    thread.start()
+
 async def main():
     await app.start()
+    await start_flask()
     await idle()
+    await app.stop()
 
 if __name__ == '__main__':
     import uvloop
