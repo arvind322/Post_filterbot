@@ -63,6 +63,15 @@ async def fix_files(_, message: Message):
             updated += 1
     await message.reply(f"Updated file names for {updated} documents.")
 
+# NEW: Check channel access command
+@app.on_message(filters.command("checkchannel") & filters.me)
+async def check_channel(_, message: Message):
+    try:
+        chat = await app.get_chat(channel_username)
+        await message.reply(f"Channel Found:\nTitle: {chat.title}\nID: {chat.id}")
+    except Exception as e:
+        await message.reply(f"Failed to access channel:\n{e}")
+
 async def start_flask():
     import threading
     def run():
