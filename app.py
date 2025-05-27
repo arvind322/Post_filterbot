@@ -16,5 +16,5 @@ def keep_alive():
     t.start()
 
 if __name__ == "__main__":
-    keep_alive()
-    start_bot()  # This should start your bot
+    keep_alive()  # Start Flask app in background
+    start_bot()   # Start your Telegram bot (blocking)
