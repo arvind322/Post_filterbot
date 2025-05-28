@@ -16,7 +16,8 @@ BOT_TOKEN = "7462333733:AAGTipaAqOSqPORNOuwERnEHBQGLoPbXxfE"
 SESSION_STRING = "BQG2HWgAMqvwjVvhBwXHXvpfwILRCGue7x1DktUIqDVZWXsrVJR8aD7dMljcpF8qMyQ7K2yKZtPmNsythsa0UrTuZTyksnAmm2kYx2NxB3dFl5ZWAZdoZBE2886uQuTDqYO4gvSdHL5DsJP-6lbaTX0J9SfSnuThzUjwLozPPfPRGZTAUVlRC6xhSx6uQP-rH-1LsB0f-WCaqrRacZwAxhqRWKDykWWF8I6KYnDER7hCjTnBQpBumWvBj2qmfek_MI-Zbl4fwNPVc7XINK6NPzMLfjJRjWO-cjuZQkWp29NFcbgg8sWt7spCxnumXyRtWeYrsw9EXn5JQsThLmhMtmu_uoCwmQAAAAHDNnyBAA"
 MONGO_URI = "mongodb+srv://lucas:00700177@lucas.miigb0j.mongodb.net/?retryWrites=true&w=majority&appName=lucas"
 CHANNEL_ID = -1002479279470
-CHANNEL_USERNAME = "moviestera1"  # without '@'
+CHANNEL_USERNAME = "moviestera1"  # Set your actual channel username
+
 # --- MongoDB ---
 mongo_client = MongoClient(MONGO_URI)
 db = mongo_client["lucas"]
@@ -58,7 +59,7 @@ async def movie_search(_, message: Message):
         try:
             await bot_app.copy_message(
                 chat_id=message.chat.id,
-                from_chat_id=f"@{CHANNEL_ID}",
+                from_chat_id=CHANNEL_ID,  # OR use f"@{CHANNEL_USERNAME}"
                 message_id=doc["message_id"],
                 reply_to_message_id=message.id
             )
