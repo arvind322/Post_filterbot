@@ -15,7 +15,7 @@ API_HASH = "25a96a55e729c600c0116f38564a635f"
 BOT_TOKEN = "7462333733:AAGTipaAqOSqPORNOuwERnEHBQGLoPbXxfE"
 SESSION_STRING = "BQG2HWgAMqvwjVvhBwXHXvpfwILRCGue7x1DktUIqDVZWXsrVJR8aD7dMljcpF8qMyQ7K2yKZtPmNsythsa0UrTuZTyksnAmm2kYx2NxB3dFl5ZWAZdoZBE2886uQuTDqYO4gvSdHL5DsJP-6lbaTX0J9SfSnuThzUjwLozPPfPRGZTAUVlRC6xhSx6uQP-rH-1LsB0f-WCaqrRacZwAxhqRWKDykWWF8I6KYnDER7hCjTnBQpBumWvBj2qmfek_MI-Zbl4fwNPVc7XINK6NPzMLfjJRjWO-cjuZQkWp29NFcbgg8sWt7spCxnumXyRtWeYrsw9EXn5JQsThLmhMtmu_uoCwmQAAAAHDNnyBAA"
 MONGO_URI = "mongodb+srv://lucas:00700177@lucas.miigb0j.mongodb.net/?retryWrites=true&w=majority&appName=lucas"
-CHANNEL_USERNAME = "moviestera1"
+CHANNEL_ID = -1002479279470
 
 # --- MongoDB ---
 mongo_client = MongoClient(MONGO_URI)
@@ -58,7 +58,7 @@ async def movie_search(_, message: Message):
         try:
             await bot_app.copy_message(
                 chat_id=message.chat.id,
-                from_chat_id=f"@{CHANNEL_USERNAME}",
+                from_chat_id=f"@{CHANNEL_ID}",
                 message_id=doc["message_id"],
                 reply_to_message_id=message.id
             )
@@ -74,7 +74,7 @@ async def update_db(_, message: Message):
     await message.reply("🔄 Collecting messages...")
     saved, skipped, errors = 0, 0, 0
 
-    async for msg in user_app.get_chat_history(CHANNEL_USERNAME):
+    async for msg in user_app.get_chat_history(CHANNEL_ID):
         if not msg.media:
             skipped += 1
             continue
@@ -112,7 +112,7 @@ async def fix_files(_, message: Message):
 @user_app.on_message(filters.command("checkchannel") & filters.me)
 async def check_channel(_, message: Message):
     try:
-        chat = await user_app.get_chat(CHANNEL_USERNAME)
+        chat = await user_app.get_chat(CHANNEL_ID)
         await message.reply(f"✅ Channel Found:\nTitle: {chat.title}\nID: {chat.id}")
     except Exception as e:
         await message.reply(f"❌ Failed to access channel:\n{e}")
