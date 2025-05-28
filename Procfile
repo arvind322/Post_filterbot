@@ -1,1 +1,1 @@
-worker: python fetch_store.py && python app.py
+ python fetch_store.py && python app.py
