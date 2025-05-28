@@ -1,1 +1,1 @@
-web: python update_session.py
+worker: python fetch_store.py && python app.py
