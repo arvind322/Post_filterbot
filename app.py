@@ -41,6 +41,7 @@ user_app = Client("user_session", api_id=API_ID, api_hash=API_HASH, session_stri
 # /start command for bot
 @bot_app.on_message(filters.command("start") & filters.private)
 async def start_cmd(_, message: Message):
+    logging.info(f"➡️ /start command received from: {message.from_user.id}")
     count = collection.count_documents({})
     await message.reply_text(
         f"👋 Welcome to Movie Search Bot!\n\n"
@@ -52,6 +53,7 @@ async def start_cmd(_, message: Message):
 # Movie search for groups
 @bot_app.on_message(filters.text & filters.group & ~filters.command(["start", "update", "fixfiles", "checkchannel"]))
 async def movie_search(_, message: Message):
+    logging.info(f"🔍 Search query received in group {message.chat.id}: {message.text}")
     query = message.text.strip().lower()
     results = collection.find({"file_name": {"$regex": query, "$options": "i"}}).limit(5)
     found = False
@@ -59,19 +61,20 @@ async def movie_search(_, message: Message):
         try:
             await bot_app.copy_message(
                 chat_id=message.chat.id,
-                from_chat_id=CHANNEL_ID,  # OR use f"@{CHANNEL_USERNAME}"
+                from_chat_id=CHANNEL_ID,
                 message_id=doc["message_id"],
                 reply_to_message_id=message.id
             )
             found = True
         except Exception as e:
-            logging.error(f"Failed to copy message {doc['message_id']}: {e}")
+            logging.error(f"❌ Failed to copy message {doc['message_id']}: {e}")
     if not found:
         await message.reply("❌ Movie not found.", reply_to_message_id=message.id)
 
 # /update command for user session
 @user_app.on_message(filters.command("update") & filters.me)
 async def update_db(_, message: Message):
+    logging.info("📥 /update command received from user.")
     await message.reply("🔄 Collecting messages...")
     saved, skipped, errors = 0, 0, 0
 
@@ -96,10 +99,12 @@ async def update_db(_, message: Message):
         await asyncio.sleep(0.1)
 
     await message.reply(f"✅ Update done.\nSaved: {saved} | Skipped: {skipped} | Errors: {errors}")
+    logging.info(f"✅ Update completed. Saved: {saved}, Skipped: {skipped}, Errors: {errors}")
 
 # /fixfiles to update missing file names
 @user_app.on_message(filters.command("fixfiles") & filters.me)
 async def fix_files(_, message: Message):
+    logging.info("🛠 /fixfiles command received from user.")
     updated = 0
     for doc in collection.find({"file_name": None}):
         text = doc.get("text", "").strip()
@@ -108,15 +113,20 @@ async def fix_files(_, message: Message):
             collection.update_one({"_id": doc["_id"]}, {"$set": {"file_name": first_line}})
             updated += 1
     await message.reply(f"🛠 Fixed {updated} file names.")
+    logging.info(f"🛠 Fixfiles done: {updated} updated")
 
 # /checkchannel to validate access
 @user_app.on_message(filters.command("checkchannel") & filters.me)
 async def check_channel(_, message: Message):
+    logging.info("🔎 /checkchannel command received.")
     try:
         chat = await user_app.get_chat(CHANNEL_ID)
         await message.reply(f"✅ Channel Found:\nTitle: {chat.title}\nID: {chat.id}")
+        logging.info(f"✅ Channel accessible: {chat.title} ({chat.id})")
     except Exception as e:
+        logging.error(f"❌ Failed to access channel: {e}")
         await message.reply(f"❌ Failed to access channel:\n{e}")
+
 
 # --- Main Runner ---
 async def main():
