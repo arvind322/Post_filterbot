@@ -130,13 +130,22 @@ async def check_channel(_, message: Message):
 
 # --- Main Runner ---
 async def main():
+    # Start Flask server in a separate thread
     threading.Thread(target=run_flask).start()
+
+    # Start both Pyrogram clients
     await bot_app.start()
     await user_app.start()
-    logging.info("✅ Both bot and user sessions started.")
-    await asyncio.Event().wait()  # Keeps app running
+
+    logging.info("✅ Both bot and user sessions started and running.")
+
+    # Keep the bot alive
+    await asyncio.Event().wait()
 
 if __name__ == "__main__":
     import uvloop
-    uvloop.install()
-    asyncio.run(main())
+    uvloop.install()  # Use uvloop for better performance
+    try:
+        asyncio.run(main())
+    except (KeyboardInterrupt, SystemExit):
+        logging.info("🚪 Exiting bot...")
