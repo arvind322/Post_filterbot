@@ -36,8 +36,8 @@ bot = Client(
 # ---------------------------
 # 🍿 MongoDB
 client = MongoClient(MONGO_URI)
-db = client['movie_db']  # your DB name
-collection = db['movies']  # your collection name
+db = client['lucas']
+collection = db['Telegram_files']
 
 # ---------------------------
 # 💬 /start command
@@ -52,15 +52,11 @@ async def search_movie(client, message):
 
     # Search in MongoDB
     result = collection.find_one({
-        "title": {"$regex": query, "$options": "i"}
-    })
+    "file_name": {"$regex": query, "$options": "i"}
+})
 
     if result:
-        text = (
-            f"🎬 *{result.get('title')}*\n"
-            f"📅 Year: {result.get('year')}\n"
-            f"🔗 Link: {result.get('link')}"
-        )
+         text = f"🎬 *{result.get('file_name')}*\n\n{result.get('text') or ''}"
     else:
         # Only send "not found" in private; ignore in group
         if message.chat.type == "private":
