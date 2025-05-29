@@ -9,8 +9,9 @@ logging.basicConfig(level=logging.INFO)
 
 api_id = 28712296
 api_hash = "25a96a55e729c600c0116f38564a635f"
-bot_token = "<your_bot_token>"
-mongo_url = "<your_mongo_url>"
+bot_token = "7462333733:AAGTipaAqOSqPORNOuwERnEHBQGLoPbXxfE"
+mongo_url = "mongodb+srv://lucas:00700177@lucas.miigb0j.mongodb.net/?retryWrites=true&w=majority&appName=lucas"
+
 channel_username = "moviestera1"
 
 client = MongoClient(mongo_url)
