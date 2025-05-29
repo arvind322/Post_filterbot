@@ -34,15 +34,41 @@ bot = Client(
 )
 
 # ---------------------------
-# 💬 Basic Command Handler
+# 🍿 MongoDB
+client = MongoClient(MONGO_URI)
+db = client['movie_db']  # your DB name
+collection = db['movies']  # your collection name
+
+# ---------------------------
+# 💬 /start command
 @bot.on_message(filters.command("start"))
 async def start_command(client, message):
     await message.reply_text("Hello! ✅ I'm alive and running on Koyeb!")
 
-@bot.on_message(filters.text & filters.private)
-async def echo(client, message):
-    await message.reply_text(f"You said: {message.text}")
+# 🎬 Movie search (group + private)
+@bot.on_message(filters.text & ~filters.command(["start"]))
+async def search_movie(client, message):
+    query = message.text.strip()
+
+    # Search in MongoDB
+    result = collection.find_one({
+        "title": {"$regex": query, "$options": "i"}
+    })
+
+    if result:
+        text = (
+            f"🎬 *{result.get('title')}*\n"
+            f"📅 Year: {result.get('year')}\n"
+            f"🔗 Link: {result.get('link')}"
+        )
+    else:
+        # Only send "not found" in private; ignore in group
+        if message.chat.type == "private":
+            text = "❌ Movie not found in database."
+        else:
+            return
+
+    await message.reply_text(text, quote=True)
 
 # ---------------------------
-# 🚀 Run the bot
 bot.run()
