@@ -45,26 +45,45 @@ collection = db['Telegram_files']
 async def start_command(client, message):
     await message.reply_text("Hello! ✅ I'm alive and running on Koyeb!")
 
+# 🛠️ /update command (private only)
+@bot.on_message(filters.command("update"))
+async def update_movie(client, message):
+    if message.chat.type != "private":
+        return
+
+    try:
+        parts = message.text.split(" ", 1)[1].split("|", 1)
+        file_name = parts[0].strip()
+        new_text = parts[1].strip()
+    except Exception:
+        await message.reply_text("❗ Format: `/update movie name | new text`", quote=True, parse_mode="markdown")
+        return
+
+    result = collection.update_one(
+        {"file_name": {"$regex": file_name, "$options": "i"}},
+        {"$set": {"text": new_text}}
+    )
+
+    if result.modified_count > 0:
+        await message.reply_text("✅ Movie updated successfully!", quote=True)
+    else:
+        await message.reply_text("❌ No matching movie found to update.", quote=True)
+
 # 🎬 Movie search (group + private)
-@bot.on_message(filters.text & ~filters.command(["start"]))
+@bot.on_message(filters.text & ~filters.command(["start", "update"]))
 async def search_movie(client, message):
     query = message.text.strip()
 
-    # Search in MongoDB
     result = collection.find_one({
-    "file_name": {"$regex": query, "$options": "i"}
-})
+        "file_name": {"$regex": query, "$options": "i"}
+    })
 
     if result:
-         text = f"🎬 *{result.get('file_name')}*\n\n{result.get('text') or ''}"
+        text = f"🎬 *{result.get('file_name')}*\n\n{result.get('text') or ''}"
+        await message.reply_text(text, quote=True, parse_mode="markdown")
     else:
-        # Only send "not found" in private; ignore in group
         if message.chat.type == "private":
-            text = "❌ Movie not found in database."
-        else:
-            return
-
-    await message.reply_text(text, quote=True)
+            await message.reply_text("❌ Movie not found in database.", quote=True)
 
 # ---------------------------
 bot.run()
