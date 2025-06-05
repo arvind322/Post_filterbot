@@ -56,7 +56,7 @@ async def search_movie(client, message):
 
     if result:
         text = f"🎬 *{result.get('file_name')}*\n\n{result.get('text') or ''}"
-        await message.reply_text(text, quote=True, parse_mode="markdown")
+        await message.reply_text(text, quote=True, parse_mode="MarkdownV2")
     else:
         if message.chat.type == "private":
             await message.reply_text("❌ Movie not found in database.", quote=True)
