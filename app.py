@@ -45,22 +45,7 @@ collection = db['Telegram_files']
 async def start_command(client, message):
     await message.reply_text("Hello! ✅ I'm alive and running on Koyeb!")
 
-@bot.on_message(filters.text & ~filters.command(["start", "update"]))
-async def search_movie(client, message):
-    query = message.text.strip()
-
-    # ✅ Improved regex for partial match
-    result = collection.find_one({
-        "file_name": {"$regex": f".*{query}.*", "$options": "i"}
-    })
-
-    if result:
-        text = f"🎬 *{result.get('file_name')}*\n\n{result.get('text') or ''}"
-        await message.reply_text(text, quote=True, parse_mode="MarkdownV2")
-    else:
-        if message.chat.type == "private":
-            await message.reply_text("❌ Movie not found in database.", quote=True)
-# 🎬 Movie search (group + private)
+# 🎬 Movie search
 @bot.on_message(filters.text & ~filters.command(["start", "update"]))
 async def search_movie(client, message):
     query = message.text.strip()
@@ -71,7 +56,7 @@ async def search_movie(client, message):
 
     if result:
         text = f"🎬 *{result.get('file_name')}*\n\n{result.get('text') or ''}"
-        await message.reply_text(text, quote=True, parse_mode="markdown")
+        await message.reply_text(text, quote=True, parse_mode="Markdown")  # ✅ Correct parse_mode
     else:
         if message.chat.type == "private":
             await message.reply_text("❌ Movie not found in database.", quote=True)
