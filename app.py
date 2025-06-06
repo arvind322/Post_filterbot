@@ -31,8 +31,11 @@ async def handle_message(client, message):
         "text": message.text,
         "message_id": message.id
     }
+    try:
     collection.insert_one(doc)
-    await message.reply("Message saved to MongoDB!")
+    print("✅ Saved to MongoDB:", doc)
+except Exception as e:
+    print("❌ Error while saving to MongoDB:", e)
 
 # Run Flask in a separate thread
 def run_flask():
