@@ -24,8 +24,10 @@ mongo_client = MongoClient(MONGO_URI)
 db = mongo_client["lucas"]
 collection = db["Telegram_files"]
 
+# Message handler with debug logs
 @bot.on_message(filters.private & filters.text)
 async def handle_message(client, message):
+    print(f"📩 Message Received: {message.text} from {message.from_user.id}")
     doc = {
         "user_id": message.from_user.id,
         "text": message.text,
