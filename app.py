@@ -36,7 +36,7 @@ async def handle_message(client, message):
 
 # Run Flask in a separate thread
 def run_flask():
-    app.run(host="0.0.0.0", port=10000)
+    app.run(host="0.0.0.0", port=8080)
 
 # Run the bot properly with asyncio in the main thread
 async def run_bot():
