@@ -60,6 +60,9 @@ async def search_movie(client, message):
     if not results:
         if message.chat.type == "private":
             await message.reply("❌ Movie not found.")
+        else:
+            hindi_msg = "❌ रिज़ल्ट नहीं मिला। कृपया पहले Google पर मूवी का नाम और रिलीज़ डेट चेक करें और वहाँ से कॉपी करके यहाँ पेस्ट करें।"
+            await message.reply(hindi_msg)
         return
 
     buttons = []
