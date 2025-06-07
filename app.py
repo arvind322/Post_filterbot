@@ -1,6 +1,7 @@
 import os
 import threading
 import logging
+import re
 from flask import Flask
 from pyrogram import Client, filters
 from pymongo import MongoClient, errors
@@ -46,19 +47,30 @@ except errors.ServerSelectionTimeoutError:
     exit(1)
 
 # ---------------------------
+# 🧼 Clean Unicode characters (… → , ’ → ', etc.)
+def clean_text(text):
+    if not text:
+        return ""
+    return text.replace("…", "").replace("’", "'").strip()
+
+# ---------------------------
 # 💬 /start command
 @bot.on_message(filters.command("start"))
 async def start_command(client, message):
     await message.reply_text("Hello! ✅ I'm alive and running on Koyeb!")
 
-# 🎬 Movie search (group + private)
+# ---------------------------
+# 🔍 Movie search (group + private)
 @bot.on_message(filters.text & ~filters.command(["start"]))
 async def search_movie(client, message):
-    query = message.text.strip()
+    query = clean_text(message.text.strip())
 
-    # Search in MongoDB
+    # Search in MongoDB with cleaned query
     result = collection.find_one({
-        "file_name": {"$regex": query, "$options": "i"}
+        "$or": [
+            {"file_name": {"$regex": re.escape(query), "$options": "i"}},
+            {"text": {"$regex": re.escape(query), "$options": "i"}}
+        ]
     })
 
     if result:
@@ -71,16 +83,16 @@ async def search_movie(client, message):
 
     await message.reply_text(text, quote=True)
 
+# ---------------------------
+# 💾 Save forwarded message
 @bot.on_message(filters.forwarded & filters.private)
 async def save_forwarded_message(client, message):
     try:
         msg_id = message.forward_from_message_id or message.id
-        full_caption = message.caption or "No Caption"
+        full_caption = clean_text(message.caption or "No Caption")
+        file_name = clean_text(full_caption.strip().splitlines()[0])
 
-        # Extract file_name from first line of caption
-        file_name = full_caption.strip().splitlines()[0]
-
-        # 🔍 Step 1: Try to generate Telegram post link if possible
+        # 🔗 Telegram Link or Terabox fallback
         if message.forward_from_chat and message.forward_from_message_id:
             chat_id = str(message.forward_from_chat.id)
             if chat_id.startswith("-100"):
@@ -88,19 +100,15 @@ async def save_forwarded_message(client, message):
             else:
                 telegram_link = "N/A"
         else:
-            # 🔍 Step 2: Fallback — Try to extract first terabox link from caption
-            import re
             match = re.search(r'https?://(?:www\.)?[\w.]*terabox\.com/\S+', full_caption)
-            if match:
-                telegram_link = match.group(0)
-            else:
-                telegram_link = "N/A"
+            telegram_link = match.group(0) if match else "N/A"
 
-        # Check if message already exists in DB by message_id
+        # ✅ Skip if already exists
         if collection.find_one({"message_id": msg_id}):
             await message.reply("⚠️ Already saved.")
             return
 
+        # ✅ Save to MongoDB
         collection.insert_one({
             "message_id": msg_id,
             "file_name": file_name,
@@ -111,5 +119,6 @@ async def save_forwarded_message(client, message):
         await message.reply("✅ Movie info saved successfully.")
     except Exception as e:
         await message.reply(f"❌ Error: {e}")
+
 # ---------------------------
 bot.run()
