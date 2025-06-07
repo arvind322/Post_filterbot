@@ -95,23 +95,19 @@ async def send_movie_info(client, callback_query: CallbackQuery):
 @bot.on_message(filters.forwarded & filters.private)
 async def save_forwarded_message(client, message):
     try:
-        msg_id = message.forward_from_message_id or message.id
         full_caption = message.caption or "No Caption"
         file_name = full_caption.strip().splitlines()[0]
 
-        if message.forward_from_chat and message.forward_from_message_id:
-            chat_id = str(message.forward_from_chat.id)
-            telegram_link = f"https://t.me/c/{chat_id[4:]}/{message.forward_from_message_id}" if chat_id.startswith("-100") else "N/A"
-        else:
-            match = re.search(r'https?://(?:www\.)?[\w.]*terabox\.com/\S+', full_caption)
-            telegram_link = match.group(0) if match else "N/A"
+        # ✅ Extract first terabox link (for uniqueness)
+        match = re.search(r'https?://(?:www\.)?[\w.]*terabox\.com/\S+', full_caption)
+        telegram_link = match.group(0) if match else "N/A"
 
-        if collection.find_one({"message_id": msg_id}):
+        # ⚠️ New logic: check based on file_name + telegram_link
+        if collection.find_one({"file_name": file_name, "telegram_link": telegram_link}):
             await message.reply("⚠️ Already saved.")
             return
 
         collection.insert_one({
-            "message_id": msg_id,
             "file_name": file_name,
             "text": full_caption,
             "telegram_link": telegram_link
