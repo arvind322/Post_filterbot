@@ -12,7 +12,7 @@ from bson import ObjectId
 # 🔧 CONFIG
 API_ID = 28712296
 API_HASH = "25a96a55e729c600c0116f38564a635f"
-BOT_TOKEN = "7462333733:AAGTipaAqOSqPORNOuwERnEHBQGLoPbXxfE"
+BOT_TOKEN = "7778279666:AAGW8_ZODBU2othUTRIiLusCqmPROO_B1qg"
 MONGO_URI = "mongodb+srv://lucas:00700177@lucas.miigb0j.mongodb.net/?retryWrites=true&w=majority&appName=lucas"
 
 # ---------------------------
