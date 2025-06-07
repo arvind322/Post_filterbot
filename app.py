@@ -74,12 +74,13 @@ async def search_movie(client, message):
 @bot.on_message(filters.forwarded & filters.private)
 async def save_forwarded_message(client, message):
     try:
-        # Fallback if forward_from_message_id is missing
         msg_id = message.forward_from_message_id or message.id
-        file_name = message.caption.splitlines()[0] if message.caption else "No Caption"
         full_caption = message.caption or "No Caption"
 
-        # Try to create link if possible
+        # Extract file_name from first line of caption
+        file_name = full_caption.strip().splitlines()[0]
+
+        # 🔍 Step 1: Try to generate Telegram post link if possible
         if message.forward_from_chat and message.forward_from_message_id:
             chat_id = str(message.forward_from_chat.id)
             if chat_id.startswith("-100"):
@@ -87,9 +88,15 @@ async def save_forwarded_message(client, message):
             else:
                 telegram_link = "N/A"
         else:
-            telegram_link = "N/A"
+            # 🔍 Step 2: Fallback — Try to extract first terabox link from caption
+            import re
+            match = re.search(r'https?://(?:www\.)?[\w.]*terabox\.com/\S+', full_caption)
+            if match:
+                telegram_link = match.group(0)
+            else:
+                telegram_link = "N/A"
 
-        # Check if already exists (use file_name + caption as fallback uniqueness)
+        # Check if message already exists in DB by message_id
         if collection.find_one({"message_id": msg_id}):
             await message.reply("⚠️ Already saved.")
             return
