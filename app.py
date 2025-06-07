@@ -74,7 +74,7 @@ async def search_movie(client, message):
 @bot.on_message(filters.forwarded & filters.private)
 async def save_forwarded_message(client, message):
     try:
-        msg_id = message.forward_from_message_id or message.message_id
+        msg_id = message.forward_from_message_id or message.id
         file_name = message.caption.splitlines()[0] if message.caption else "No Caption"
         full_caption = message.caption or "No Caption"
         telegram_link = f"https://t.me/c/{str(message.forward_from_chat.id)[4:]}/{msg_id}" if message.forward_from_chat else "N/A"
