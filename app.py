@@ -74,12 +74,22 @@ async def search_movie(client, message):
 @bot.on_message(filters.forwarded & filters.private)
 async def save_forwarded_message(client, message):
     try:
+        # Fallback if forward_from_message_id is missing
         msg_id = message.forward_from_message_id or message.id
         file_name = message.caption.splitlines()[0] if message.caption else "No Caption"
         full_caption = message.caption or "No Caption"
-        telegram_link = f"https://t.me/c/{str(message.forward_from_chat.id)[4:]}/{msg_id}" if message.forward_from_chat else "N/A"
 
-        # Check if already exists
+        # Try to create link if possible
+        if message.forward_from_chat and message.forward_from_message_id:
+            chat_id = str(message.forward_from_chat.id)
+            if chat_id.startswith("-100"):
+                telegram_link = f"https://t.me/c/{chat_id[4:]}/{message.forward_from_message_id}"
+            else:
+                telegram_link = "N/A"
+        else:
+            telegram_link = "N/A"
+
+        # Check if already exists (use file_name + caption as fallback uniqueness)
         if collection.find_one({"message_id": msg_id}):
             await message.reply("⚠️ Already saved.")
             return
@@ -87,7 +97,7 @@ async def save_forwarded_message(client, message):
         collection.insert_one({
             "message_id": msg_id,
             "file_name": file_name,
-            "caption": full_caption,
+            "text": full_caption,
             "telegram_link": telegram_link
         })
 
