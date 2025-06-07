@@ -4,10 +4,12 @@ import logging
 import re
 from flask import Flask
 from pyrogram import Client, filters
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 from pymongo import MongoClient, errors
+from bson import ObjectId
 
 # ---------------------------
-# 🔧 CONFIG (Your credentials)
+# 🔧 CONFIG
 API_ID = 28712296
 API_HASH = "25a96a55e729c600c0116f38564a635f"
 BOT_TOKEN = "7462333733:AAGTipaAqOSqPORNOuwERnEHBQGLoPbXxfE"
@@ -16,15 +18,10 @@ MONGO_URI = "mongodb+srv://lucas:00700177@lucas.miigb0j.mongodb.net/?retryWrites
 # ---------------------------
 # 🌐 Flask Web Server for Koyeb
 app = Flask(__name__)
-
 @app.route("/")
 def home():
     return "🤖 Bot is alive!"
-
-def run_flask():
-    app.run(host="0.0.0.0", port=8080)
-
-threading.Thread(target=run_flask).start()
+threading.Thread(target=lambda: app.run(host="0.0.0.0", port=8080)).start()
 
 # ---------------------------
 # 🧠 Logging
@@ -47,68 +44,69 @@ except errors.ServerSelectionTimeoutError:
     exit(1)
 
 # ---------------------------
-# 🧼 Clean Unicode characters (… → , ’ → ', etc.)
-def clean_text(text):
-    if not text:
-        return ""
-    return text.replace("…", "").replace("’", "'").strip()
-
-# ---------------------------
 # 💬 /start command
 @bot.on_message(filters.command("start"))
 async def start_command(client, message):
     await message.reply_text("Hello! ✅ I'm alive and running on Koyeb!")
 
-# ---------------------------
-# 🔍 Movie search (group + private)
+# 🔍 Search with Inline Buttons
 @bot.on_message(filters.text & ~filters.command(["start"]))
 async def search_movie(client, message):
-    query = clean_text(message.text.strip())
+    query = message.text.strip()
+    results = list(collection.find({
+        "file_name": {"$regex": query, "$options": "i"}
+    }).limit(10))
 
-    # Search in MongoDB with cleaned query
-    result = collection.find_one({
-        "$or": [
-            {"file_name": {"$regex": re.escape(query), "$options": "i"}},
-            {"text": {"$regex": re.escape(query), "$options": "i"}}
-        ]
-    })
-
-    if result:
-        text = f"🎬 *{result.get('file_name')}*\n\n{result.get('text') or ''}"
-    else:
+    if not results:
         if message.chat.type == "private":
-            text = "❌ Movie not found in database."
-        else:
+            await message.reply("❌ Movie not found.")
+        return
+
+    buttons = []
+    for doc in results:
+        title = doc["file_name"][:60] + "..." if len(doc["file_name"]) > 60 else doc["file_name"]
+        buttons.append([InlineKeyboardButton(text=title, callback_data=f"movie_{str(doc['_id'])}")])
+
+    await message.reply(
+        f"🔍 Found {len(results)} result(s). Click to view:",
+        reply_markup=InlineKeyboardMarkup(buttons)
+    )
+
+# 🎬 Callback to show full movie info
+@bot.on_callback_query(filters.regex(r"^movie_"))
+async def send_movie_info(client, callback_query: CallbackQuery):
+    try:
+        movie_id = callback_query.data.split("_", 1)[1]
+        result = collection.find_one({"_id": ObjectId(movie_id)})
+
+        if not result:
+            await callback_query.message.edit_text("❌ Movie not found.")
             return
 
-    await message.reply_text(text, quote=True)
+        text = f"🎬 *{result.get('file_name')}*\n\n{result.get('text') or ''}"
+        await callback_query.message.edit_text(text, disable_web_page_preview=True)
+    except Exception as e:
+        await callback_query.message.edit_text(f"❌ Error: {e}")
 
-# ---------------------------
-# 💾 Save forwarded message
+# 💾 Save Forwarded Message
 @bot.on_message(filters.forwarded & filters.private)
 async def save_forwarded_message(client, message):
     try:
         msg_id = message.forward_from_message_id or message.id
-        full_caption = clean_text(message.caption or "No Caption")
-        file_name = clean_text(full_caption.strip().splitlines()[0])
+        full_caption = message.caption or "No Caption"
+        file_name = full_caption.strip().splitlines()[0]
 
-        # 🔗 Telegram Link or Terabox fallback
         if message.forward_from_chat and message.forward_from_message_id:
             chat_id = str(message.forward_from_chat.id)
-            if chat_id.startswith("-100"):
-                telegram_link = f"https://t.me/c/{chat_id[4:]}/{message.forward_from_message_id}"
-            else:
-                telegram_link = "N/A"
+            telegram_link = f"https://t.me/c/{chat_id[4:]}/{message.forward_from_message_id}" if chat_id.startswith("-100") else "N/A"
         else:
             match = re.search(r'https?://(?:www\.)?[\w.]*terabox\.com/\S+', full_caption)
             telegram_link = match.group(0) if match else "N/A"
 
-        # ✅ Skip if already exists
         if collection.find_one({"message_id": msg_id}):
             await message.reply("⚠️ Already saved.")
             return
 
-        # ✅ Save to MongoDB
         collection.insert_one({
             "message_id": msg_id,
             "file_name": file_name,
