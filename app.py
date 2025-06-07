@@ -71,7 +71,7 @@ async def search_movie(client, message):
 
     await message.reply_text(text, quote=True)
 
-@app.on_message(filters.forwarded & filters.private)
+@bot.on_message(filters.forwarded & filters.private)
 async def save_forwarded_message(client, message):
     try:
         msg_id = message.forward_from_message_id or message.message_id
