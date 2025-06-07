@@ -71,34 +71,28 @@ async def search_movie(client, message):
 
     await message.reply_text(text, quote=True)
 
-# 📥 Save forwarded channel posts
-@bot.on_message(filters.private & filters.forwarded & filters.incoming)
-async def handle_forwarded_message(client, message):
+@app.on_message(filters.forwarded & filters.private)
+async def save_forwarded_message(client, message):
     try:
-        if message.forward_from_chat and message.forward_from_chat.type == "channel":
-            original_channel = message.forward_from_chat
-            file_name = message.caption.split("\n")[0] if message.caption else "No Caption"
+        msg_id = message.forward_from_message_id or message.message_id
+        file_name = message.caption.splitlines()[0] if message.caption else "No Caption"
+        full_caption = message.caption or "No Caption"
+        telegram_link = f"https://t.me/c/{str(message.forward_from_chat.id)[4:]}/{msg_id}" if message.forward_from_chat else "N/A"
 
-            chat_id_str = str(original_channel.id)
-            if chat_id_str.startswith("-100"):
-                chat_id_str = chat_id_str[4:]
+        # Check if already exists
+        if collection.find_one({"message_id": msg_id}):
+            await message.reply("⚠️ Already saved.")
+            return
 
-            telegram_link = f"https://t.me/c/{chat_id_str}/{message.forward_from_message_id}"
+        collection.insert_one({
+            "message_id": msg_id,
+            "file_name": file_name,
+            "caption": full_caption,
+            "telegram_link": telegram_link
+        })
 
-            doc = {
-                "message_id": message.message_id,
-                "file_name": file_name,
-                "full_text": message.caption or "",
-                "telegram_link": telegram_link
-            }
-
-            if collection.count_documents({"message_id": message.message_id}, limit=1) == 0:
-                collection.insert_one(doc)
-                logging.info(f"✅ Inserted: {file_name} -> {telegram_link}")
-            else:
-                logging.info(f"ℹ️ Already exists: {file_name} -> {telegram_link}")
+        await message.reply("✅ Movie info saved successfully.")
     except Exception as e:
-        logging.error(f"❌ Error processing message {message.message_id}: {e}")
-
+        await message.reply(f"❌ Error: {e}")
 # ---------------------------
 bot.run()
